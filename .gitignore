@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.streamlit/secrets.toml
+export/
+video_app_data/
+*.pyc
