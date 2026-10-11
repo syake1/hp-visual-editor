@@ -1,0 +1,198 @@
+{
+  "name": "HP Visual Editor Project",
+  "pageTitle": "ネットインテリア月島",
+  "background": "#f8f5ef",
+  "viewport": "PC表示",
+  "elements": [
+    {
+      "id": "logo-title",
+      "type": "heading",
+      "name": "メインコピー",
+      "content": "ネットインテリア月島",
+      "x": 80,
+      "y": 48,
+      "w": 520,
+      "h": 70,
+      "z": 2,
+      "visible": true,
+      "locked": false,
+      "style": {
+        "fontSize": 42,
+        "fontWeight": 800,
+        "color": "#1f2933",
+        "background": "transparent",
+        "align": "left",
+        "radius": 0,
+        "border": 0,
+        "shadow": false,
+        "opacity": 1.0,
+        "lineHeight": 1.25,
+        "letterSpacing": 0,
+        "paddingY": 0,
+        "paddingX": 0,
+        "animation": "下から表示"
+      },
+      "responsive": {
+        "mobile": {
+          "x": 24,
+          "y": 32,
+          "w": 320,
+          "h": 84,
+          "fontSize": 30,
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": "lead-text",
+      "type": "text",
+      "name": "説明文",
+      "content": "壁紙・床・店舗内装の施工事例を、写真と動画でわかりやすく紹介します。",
+      "x": 82,
+      "y": 128,
+      "w": 600,
+      "h": 68,
+      "z": 2,
+      "visible": true,
+      "locked": false,
+      "style": {
+        "fontSize": 20,
+        "fontWeight": 500,
+        "color": "#4b5563",
+        "background": "transparent",
+        "align": "left",
+        "radius": 0,
+        "border": 0,
+        "shadow": false,
+        "opacity": 1,
+        "lineHeight": 1.55,
+        "letterSpacing": 0,
+        "paddingY": 0,
+        "paddingX": 0,
+        "animation": "なし"
+      },
+      "responsive": {
+        "mobile": {
+          "x": 24,
+          "y": 124,
+          "w": 320,
+          "h": 96,
+          "fontSize": 17,
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": "hero-video",
+      "type": "video",
+      "name": "注目動画プレイヤー",
+      "content": "ここに動画を追加",
+      "src": "",
+      "youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "poster": "",
+      "x": 80,
+      "y": 230,
+      "w": 760,
+      "h": 430,
+      "z": 1,
+      "visible": true,
+      "locked": false,
+      "video": {
+        "autoplay": false,
+        "loop": false,
+        "muted": true,
+        "controls": true,
+        "playsinline": true,
+        "desktopOnly": false,
+        "mobileOnly": false,
+        "hideOnMobile": false
+      },
+      "style": {
+        "fontSize": 18,
+        "fontWeight": 700,
+        "color": "#334155",
+        "background": "#111827",
+        "align": "center",
+        "radius": 18,
+        "border": 1,
+        "shadow": true,
+        "opacity": 1,
+        "lineHeight": 1.2,
+        "letterSpacing": 0,
+        "paddingY": 0,
+        "paddingX": 0,
+        "objectFit": "cover",
+        "animation": "フェードイン"
+      },
+      "responsive": {
+        "mobile": {
+          "x": 18,
+          "y": 250,
+          "w": 354,
+          "h": 214,
+          "visible": true
+        }
+      }
+    },
+    {
+      "id": "contact-button",
+      "type": "button",
+      "name": "問い合わせボタン",
+      "content": "問い合わせする",
+      "href": "mailto:info@example.com",
+      "x": 880,
+      "y": 500,
+      "w": 220,
+      "h": 58,
+      "z": 3,
+      "visible": true,
+      "locked": false,
+      "style": {
+        "fontSize": 18,
+        "fontWeight": 800,
+        "color": "#ffffff",
+        "background": "#0f766e",
+        "align": "center",
+        "radius": 12,
+        "border": 0,
+        "shadow": true,
+        "opacity": 1,
+        "lineHeight": 1,
+        "letterSpacing": 0,
+        "paddingY": 0,
+        "paddingX": 0,
+        "animation": "なし"
+      },
+      "responsive": {
+        "mobile": {
+          "x": 72,
+          "y": 486,
+          "w": 246,
+          "h": 56,
+          "visible": true
+        }
+      }
+    }
+  ],
+  "videos": [
+    {
+      "id": "sample-video",
+      "title": "現場の風景",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "mp4": "",
+      "github": "",
+      "thumbnail": "",
+      "description": "トップページに置ける注目動画のサンプルです。",
+      "category": "現場風景",
+      "date": "2026-10-11",
+      "visible": true,
+      "showTop": true,
+      "showGallery": true,
+      "order": 1
+    }
+  ],
+  "assets": [],
+  "history": [],
+  "future": []
+}

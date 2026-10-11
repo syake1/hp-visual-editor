@@ -1,0 +1,1 @@
+document.querySelectorAll('.anim-フェードイン,.anim-下から表示,.anim-上から表示,.anim-左から表示,.anim-右から表示,.anim-ズーム,.anim-スクロール時表示').forEach((el)=>{el.style.transition='opacity .55s ease, transform .55s ease';el.style.opacity='1';});
