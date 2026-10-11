@@ -28,17 +28,8 @@ python -m venv .venv
 
 ## GitHub連携
 
-Streamlit Secrets に以下のどちらかを設定してください。トークンはソースコードに書かないでください。
+アプリ内の「GitHubへ反映」で「GitHub保存キー」にPersonal Access Tokenを入力してください。対象リポジトリだけにContentsの読み書き権限を付けたFine-grained tokenを使用します。キーはブラウザーの操作中だけ保持し、ページデータや書き出しファイルには含めません。
 
-```toml
-GITHUB_TOKEN = "github_pat_xxx"
-```
+ユーザー名、リポジトリ名、ブランチを指定すると、書き出しファイルをGitHubへ反映します。公開アプリの利用者間で書き込み権限を共有しないよう、サーバー共通のSecretsからは読み込みません。
 
-または:
-
-```toml
-[github]
-token = "github_pat_xxx"
-```
-
-アプリ内の「GitHubへ反映」でユーザー名、リポジトリ名、ブランチを指定すると、書き出しファイルをGitHubへ反映します。
+公開アプリ: https://hp-visual-editor-syake1.streamlit.app/
