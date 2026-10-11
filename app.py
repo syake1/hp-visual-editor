@@ -456,10 +456,10 @@ def save_export_to_disk(project: dict[str, Any]) -> None:
     (EXPORT_DIR / "assets").mkdir(exist_ok=True)
 
 
-def github_push(project: dict[str, Any], owner: str, repo: str, branch: str) -> tuple[bool, str]:
-    token = st.secrets.get("github", {}).get("token") or st.secrets.get("GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN")
+def github_push(project: dict[str, Any], owner: str, repo: str, branch: str, token: str = "") -> tuple[bool, str]:
+    token = token.strip()
     if not token:
-        return False, "GitHubトークンが見つかりません。.streamlit/secrets.toml または Streamlit Cloud Secrets に設定してください。"
+        return False, "GitHub保存キーを入力してください。"
     files = exported_files(project)
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
     for path, content in files.items():
@@ -698,12 +698,15 @@ def right_panel() -> None:
 
 def github_panel() -> None:
     with st.expander("GitHubへ反映", expanded=False):
-        st.caption("トークンはソースコードに書かず、Streamlit Secrets の `GITHUB_TOKEN` または `[github] token` を使います。")
-        owner = st.text_input("GitHubユーザー / 組織")
+        token = st.text_input("GitHub保存キー", type="password", key="github_save_token")
+        owner = st.text_input("GitHubユーザー / 組織", "syake1")
         repo = st.text_input("リポジトリ名", "hp-visual-editor")
         branch = st.text_input("ブランチ", "main")
-        if st.button("GitHubへ反映", use_container_width=True):
-            ok, message = github_push(st.session_state.project, owner, repo, branch)
+        if st.button("GitHubへ反映", width="stretch"):
+            if not token:
+                st.error("GitHub保存キーを入力してください。")
+                return
+            ok, message = github_push(st.session_state.project, owner, repo, branch, token)
             (st.success if ok else st.error)(message)
 
 
