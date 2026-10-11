@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --accent:#0f766e; --guide:#38bdf8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#dbe4e2; }
+    .wrap { padding:12px; overflow:auto; }
+    .toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:#334155; font-size:13px; }
+    .pill { border:1px solid #cbd5e1; border-radius:8px; background:white; padding:6px 10px; font-weight:700; }
+    .stage { position:relative; margin:0 auto; min-height:760px; border:1px solid #b8c4cf; background:#fff; box-shadow:0 20px 50px rgba(15,23,42,.18); overflow:hidden; transform-origin:top center; }
+    .stage:before, .stage:after { content:""; position:absolute; pointer-events:none; z-index:9000; opacity:0; }
+    .stage.show-x:before { top:0; bottom:0; left:50%; border-left:1px dashed var(--guide); opacity:1; }
+    .stage.show-y:after { left:0; right:0; top:50%; border-top:1px dashed var(--guide); opacity:1; }
+    .el { position:absolute; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:grab; user-select:none; outline:0 solid transparent; }
+    .el.locked { cursor:not-allowed; }
+    .el.selected { outline:3px solid var(--accent); outline-offset:2px; }
+    .el.hidden { opacity:.28 !important; }
+    .el iframe, .el video, .el img { width:100%; height:100%; border:0; object-fit:cover; border-radius:inherit; pointer-events:none; }
+    .el a { color:inherit; text-decoration:none; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+    .text-content { width:100%; min-height:100%; outline:none; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; border:2px dashed #94a3b8; border-radius:inherit; color:#475569; background:rgba(255,255,255,.74); font-weight:800; text-align:center; }
+    .placeholder.video { color:white; background:linear-gradient(135deg,#111827,#334155); border-color:#64748b; }
+    .resize { position:absolute; width:15px; height:15px; border:2px solid white; background:var(--accent); border-radius:50%; z-index:20; display:none; }
+    .selected .resize { display:block; }
+    .nw { left:-8px; top:-8px; cursor:nwse-resize; }
+    .ne { right:-8px; top:-8px; cursor:nesw-resize; }
+    .sw { left:-8px; bottom:-8px; cursor:nesw-resize; }
+    .se { right:-8px; bottom:-8px; cursor:nwse-resize; }
+    .label { position:absolute; left:0; top:-28px; padding:4px 8px; background:var(--accent); color:white; border-radius:6px; font-size:12px; font-weight:800; display:none; white-space:nowrap; }
+    .selected .label { display:block; }
+    h1 { margin:0; font-size:inherit; line-height:inherit; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar">
+      <span class="pill" id="viewportLabel">PC表示</span>
+      <span>ドラッグ移動・四隅リサイズ・文字をその場で編集</span>
+    </div>
+    <div id="stage" class="stage"></div>
+  </div>
+  <script>
+    let project = null;
+    let selectedId = null;
+    let viewport = "PC表示";
+    let stageWidth = 1180;
+    let dragging = null;
+    let resizing = null;
+    let dirtyTimer = null;
+
+    function ready() {
+      window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:componentReady", apiVersion: 1 }, "*");
+      setHeight();
+    }
+    function setHeight() {
+      const h = Math.max(820, document.documentElement.scrollHeight);
+      window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setFrameHeight", height: h }, "*");
+    }
+    function send(value) {
+      window.parent.postMessage({ isStreamlitMessage: true, type: "streamlit:setComponentValue", value }, "*");
+    }
+    function scheduleUpdate() {
+      clearTimeout(dirtyTimer);
+      dirtyTimer = setTimeout(() => send({ type: "update", project, selectedId }), 220);
+    }
+    function youtubeId(url) {
+      const m = String(url || "").match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+      return m ? m[1] : "";
+    }
+    function activeBox(el) {
+      const mobile = viewport === "スマホ表示";
+      const tab = viewport === "タブレット表示";
+      const e = JSON.parse(JSON.stringify(el));
+      if (mobile && el.responsive && el.responsive.mobile) {
+        Object.assign(e, el.responsive.mobile);
+        if (el.responsive.mobile.fontSize) e.style.fontSize = el.responsive.mobile.fontSize;
+      } else if (tab) {
+        e.x = Math.round((el.x || 0) * 0.78);
+        e.y = el.y || 0;
+        e.w = Math.round((el.w || 100) * 0.78);
+        e.h = el.h || 50;
+      }
+      return e;
+    }
+    function persistBox(id, box) {
+      const el = project.elements.find((item) => item.id === id);
+      if (!el) return;
+      if (viewport === "スマホ表示") {
+        el.responsive = el.responsive || {};
+        el.responsive.mobile = el.responsive.mobile || {};
+        Object.assign(el.responsive.mobile, { x: box.x, y: box.y, w: box.w, h: box.h });
+      } else if (viewport === "タブレット表示") {
+        el.x = Math.round(box.x / 0.78);
+        el.y = box.y;
+        el.w = Math.round(box.w / 0.78);
+        el.h = box.h;
+      } else {
+        Object.assign(el, { x: box.x, y: box.y, w: box.w, h: box.h });
+      }
+    }
+    function elementInner(el) {
+      const style = el.style || {};
+      const content = el.content || "";
+      if (el.type === "image") {
+        return el.src ? `<img src="${el.src}" style="object-fit:${style.objectFit || "cover"}" alt="">` : `<div class="placeholder">ここに画像を追加</div>`;
+      }
+      if (el.type === "video" || el.type === "youtube") {
+        const yt = youtubeId(el.youtube || "");
+        if (yt) return `<iframe src="https://www.youtube.com/embed/${yt}" allowfullscreen></iframe>`;
+        if (el.src) {
+          const v = el.video || {};
+          return `<video src="${el.src}" ${v.controls !== false ? "controls" : ""} ${v.autoplay ? "autoplay" : ""} ${v.loop ? "loop" : ""} ${v.muted !== false ? "muted" : ""} ${v.playsinline !== false ? "playsinline" : ""}></video>`;
+        }
+        return `<div class="placeholder video">ここに動画を追加</div>`;
+      }
+      if (el.type === "button") return `<a href="${el.href || "#"}">${content}</a>`;
+      if (el.type === "divider") return "";
+      const tag = el.type === "heading" ? "h1" : "div";
+      return `<${tag} class="text-content" contenteditable="${el.locked ? "false" : "true"}">${content}</${tag}>`;
+    }
+    function render() {
+      if (!project) return;
+      const stage = document.getElementById("stage");
+      document.getElementById("viewportLabel").textContent = viewport;
+      stage.style.width = `${stageWidth}px`;
+      stage.style.background = project.background || "#fff";
+      stage.innerHTML = "";
+      const mobile = viewport === "スマホ表示";
+      [...(project.elements || [])].sort((a, b) => (a.z || 0) - (b.z || 0)).forEach((el) => {
+        const box = activeBox(el);
+        const style = el.style || {};
+        const node = document.createElement("div");
+        node.className = `el ${selectedId === el.id ? "selected" : ""} ${el.locked ? "locked" : ""} ${el.visible === false || (mobile && box.visible === false) ? "hidden" : ""}`;
+        node.dataset.id = el.id;
+        Object.assign(node.style, {
+          left: `${box.x || 0}px`, top: `${box.y || 0}px`, width: `${box.w || 100}px`, height: `${box.h || 50}px`,
+          zIndex: el.z || 1, borderRadius: `${style.radius || 0}px`, opacity: style.opacity ?? 1,
+          color: style.color || "#111827", background: style.background || "transparent",
+          textAlign: style.align || "left", fontSize: `${style.fontSize || 16}px`, fontWeight: style.fontWeight || 500,
+          lineHeight: style.lineHeight || 1.35, letterSpacing: `${style.letterSpacing || 0}px`,
+          padding: `${style.paddingY || 0}px ${style.paddingX || 0}px`,
+          border: `${style.border || 0}px solid #cbd5e1`,
+          boxShadow: style.shadow ? "0 16px 36px rgba(15,23,42,.18)" : "none"
+        });
+        node.innerHTML = `<span class="label">${el.name || el.type}</span>${elementInner(el)}<i class="resize nw"></i><i class="resize ne"></i><i class="resize sw"></i><i class="resize se"></i>`;
+        stage.appendChild(node);
+      });
+      bind();
+      setHeight();
+    }
+    function bind() {
+      document.querySelectorAll(".el").forEach((node) => {
+        node.onpointerdown = (ev) => {
+          const id = node.dataset.id;
+          const el = project.elements.find((item) => item.id === id);
+          selectedId = id;
+          send({ type: "select", id });
+          if (!el || el.locked) return;
+          const handle = ev.target.classList.contains("resize") ? ev.target.classList[1] : null;
+          const rect = node.getBoundingClientRect();
+          const stageRect = document.getElementById("stage").getBoundingClientRect();
+          const start = activeBox(el);
+          if (handle) {
+            resizing = { id, handle, sx: ev.clientX, sy: ev.clientY, start };
+          } else if (!ev.target.isContentEditable) {
+            dragging = { id, ox: ev.clientX - rect.left, oy: ev.clientY - rect.top, stageLeft: stageRect.left, stageTop: stageRect.top, start };
+          }
+          render();
+        };
+        node.querySelectorAll("[contenteditable=true]").forEach((editable) => {
+          editable.oninput = () => {
+            const el = project.elements.find((item) => item.id === node.dataset.id);
+            if (el) {
+              el.content = editable.innerText;
+              scheduleUpdate();
+            }
+          };
+        });
+      });
+    }
+    window.onpointermove = (ev) => {
+      const stage = document.getElementById("stage");
+      if (dragging) {
+        const x = Math.max(0, Math.round(ev.clientX - dragging.stageLeft - dragging.ox));
+        const y = Math.max(0, Math.round(ev.clientY - dragging.stageTop - dragging.oy));
+        const box = { ...dragging.start, x, y };
+        persistBox(dragging.id, box);
+        stage.classList.toggle("show-x", Math.abs(x + box.w / 2 - stageWidth / 2) < 8);
+        stage.classList.toggle("show-y", Math.abs(y + box.h / 2 - 380) < 8);
+        render();
+        scheduleUpdate();
+      }
+      if (resizing) {
+        const dx = Math.round(ev.clientX - resizing.sx);
+        const dy = Math.round(ev.clientY - resizing.sy);
+        const b = { ...resizing.start };
+        if (resizing.handle.includes("e")) b.w = Math.max(32, b.w + dx);
+        if (resizing.handle.includes("s")) b.h = Math.max(24, b.h + dy);
+        if (resizing.handle.includes("w")) { b.x = Math.max(0, b.x + dx); b.w = Math.max(32, b.w - dx); }
+        if (resizing.handle.includes("n")) { b.y = Math.max(0, b.y + dy); b.h = Math.max(24, b.h - dy); }
+        persistBox(resizing.id, b);
+        render();
+        scheduleUpdate();
+      }
+    };
+    window.onpointerup = () => {
+      dragging = null;
+      resizing = null;
+      document.getElementById("stage").classList.remove("show-x", "show-y");
+      scheduleUpdate();
+    };
+    window.addEventListener("message", (event) => {
+      if (event.data.type !== "streamlit:render") return;
+      project = event.data.args.project;
+      selectedId = event.data.args.selectedId;
+      viewport = event.data.args.viewport || "PC表示";
+      stageWidth = event.data.args.width || 1180;
+      render();
+    });
+    ready();
+  </script>
+</body>
+</html>
